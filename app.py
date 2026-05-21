@@ -278,10 +278,14 @@ async def on_chat_start():
     cl.user_session.set("skill", None)
     cl.user_session.set("router", SkillRouter())
 
-    # Initialize memory
+    # Initialize memory (non-fatal)
     session_id = str(uuid.uuid4())
-    mem = MemoryManager(session_id=session_id, user_id="default")
-    cl.user_session.set("memory", mem)
+    try:
+        mem = MemoryManager(session_id=session_id, user_id="default")
+        cl.user_session.set("memory", mem)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Memory init failed: {e}")
 
     welcome = """# 3GPP 双 Skill 智能检索助手
 
@@ -387,10 +391,14 @@ async def on_switch_skill(action: cl.Action):
 @cl.on_settings_update
 async def on_settings_update(settings):
     cl.user_session.set("settings", settings)
-    mem: MemoryManager = cl.user_session.get("memory")
-    if mem:
-        skill = cl.user_session.get("skill")
-        mem.save_preferences_from_settings(settings, skill.value if skill else "tdoc")
+    try:
+        mem: MemoryManager = cl.user_session.get("memory")
+        if mem:
+            skill = cl.user_session.get("skill")
+            mem.save_preferences_from_settings(settings, skill.value if skill else "tdoc")
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Failed to save preferences: {e}")
 
 
 @cl.on_message
