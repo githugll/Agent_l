@@ -1,0 +1,518 @@
+{
+  "_meta": {
+    "description": "3GPP 核心术语词典 - 用于检索时术语扩展与消歧",
+    "version": "1.0",
+    "last_updated": "2026-05-09",
+    "total_terms": 72
+  },
+  "URLLC": {
+    "full": "Ultra-Reliable Low-Latency Communication",
+    "category": "场景",
+    "related": ["eMBB", "mMTC", "HARQ", "PDSCH"]
+  },
+  "eMBB": {
+    "full": "enhanced Mobile Broadband",
+    "category": "场景",
+    "related": ["URLLC", "mMTC", "PDSCH", "MIMO"]
+  },
+  "mMTC": {
+    "full": "massive Machine Type Communication",
+    "category": "场景",
+    "related": ["URLLC", "eMBB", "NB-IoT", "LCM"]
+  },
+  "NR": {
+    "full": "New Radio",
+    "category": "接入技术",
+    "related": ["LTE", "5G", "FR1", "FR2", "PDSCH", "PUSCH"]
+  },
+  "LTE": {
+    "full": "Long Term Evolution",
+    "category": "接入技术",
+    "related": ["NR", "4G", "E-UTRA", "PDCP", "RLC"]
+  },
+  "5G": {
+    "full": "Fifth Generation Mobile Networks",
+    "category": "接入技术",
+    "related": ["NR", "5GC", "SA", "NSA"]
+  },
+  "NSA": {
+    "full": "Non-Standalone (Architecture)",
+    "category": "网络架构",
+    "related": ["SA", "5G", "LTE", "NR"]
+  },
+  "SA": {
+    "full": "Standalone (Architecture)",
+    "category": "网络架构",
+    "related": ["NSA", "5G", "5GC", "NR"]
+  },
+  "NTN": {
+    "full": "Non-Terrestrial Network",
+    "category": "网络架构",
+    "related": ["NR", "IoT", "FR2", "Satellite"]
+  },
+  "IoT": {
+    "full": "Internet of Things",
+    "category": "场景",
+    "related": ["mMTC", "NB-IoT", "LCM", "NTN"]
+  },
+  "AI": {
+    "full": "Artificial Intelligence",
+    "category": "使能技术",
+    "related": ["ML", "DL", "AI/ML"]
+  },
+  "ML": {
+    "full": "Machine Learning",
+    "category": "使能技术",
+    "related": ["AI", "DL", "AI/ML", "CSI"]
+  },
+  "DL": {
+    "full": "Deep Learning",
+    "category": "使能技术",
+    "related": ["AI", "ML", "AI/ML"]
+  },
+  "AI/ML": {
+    "full": "Artificial Intelligence and Machine Learning",
+    "category": "使能技术",
+    "related": ["AI", "ML", "DL", "CSI"]
+  },
+  "OD-SSB": {
+    "full": "Orthogonal Discovery Signal for Sidelink",
+    "category": "Sidelink",
+    "related": ["SSB", "Sidelink", "PSCCH", "PSSCH"]
+  },
+  "SSB": {
+    "full": "Synchronization Signal Block",
+    "category": "物理层",
+    "related": ["SS/PBCH", "PBCH", "SSS", "PSS", "FR1", "FR2"]
+  },
+  "SS/PBCH": {
+    "full": "Synchronization Signal and PBCH Block",
+    "category": "物理层",
+    "related": ["SSB", "PBCH", "PSS", "SSS"]
+  },
+  "PSS": {
+    "full": "Primary Synchronization Signal",
+    "category": "物理层",
+    "related": ["SSS", "SSB", "PBCH"]
+  },
+  "SSS": {
+    "full": "Secondary Synchronization Signal",
+    "category": "物理层",
+    "related": ["PSS", "SSB", "PBCH"]
+  },
+  "PBCH": {
+    "full": "Physical Broadcast Channel",
+    "category": "物理信道",
+    "related": ["SSB", "PSS", "SSS", "MIB"]
+  },
+  "MIB": {
+    "full": "Master Information Block",
+    "category": "信令",
+    "related": ["PBCH", "SIB", "SSB"]
+  },
+  "SIB": {
+    "full": "System Information Block",
+    "category": "信令",
+    "related": ["MIB", "RRC", "NAS"]
+  },
+  "PDSCH": {
+    "full": "Physical Downlink Shared Channel",
+    "category": "物理信道",
+    "related": ["PUSCH", "PDCCH", "DCI", "MCS"]
+  },
+  "PUSCH": {
+    "full": "Physical Uplink Shared Channel",
+    "category": "物理信道",
+    "related": ["PDSCH", "PDCCH", "DCI", "UCI"]
+  },
+  "PDCCH": {
+    "full": "Physical Downlink Control Channel",
+    "category": "物理信道",
+    "related": ["DCI", "PDSCH", "PUSCH", "CORESET"]
+  },
+  "PUCCH": {
+    "full": "Physical Uplink Control Channel",
+    "category": "物理信道",
+    "related": ["UCI", "PUSCH", "SR", "ACK/NACK"]
+  },
+  "DCI": {
+    "full": "Downlink Control Information",
+    "category": "控制信令",
+    "related": ["PDCCH", "PDSCH", "PUSCH", "CORESET"]
+  },
+  "UCI": {
+    "full": "Uplink Control Information",
+    "category": "控制信令",
+    "related": ["PUCCH", "HARQ", "SR", "CSI"]
+  },
+  "PDCP": {
+    "full": "Packet Data Convergence Protocol",
+    "category": "协议层",
+    "related": ["RLC", "MAC", "RRC", "SDAP"]
+  },
+  "RLC": {
+    "full": "Radio Link Control",
+    "category": "协议层",
+    "related": ["PDCP", "MAC", "AM", "UM", "TM"]
+  },
+  "MAC": {
+    "full": "Medium Access Control",
+    "category": "协议层",
+    "related": ["RLC", "PHY", "HARQ", "LCP"]
+  },
+  "RRC": {
+    "full": "Radio Resource Control",
+    "category": "协议层",
+    "related": ["NAS", "PDCP", "SIB", "MRB"]
+  },
+  "SDAP": {
+    "full": "Service Data Adaptation Protocol",
+    "category": "协议层",
+    "related": ["PDCP", "QoS", "5G", "NR"]
+  },
+  "Beam Management": {
+    "full": "波束管理",
+    "category": "物理层过程",
+    "related": ["Beamforming", "CSI-RS", "SSB", "TRP"]
+  },
+  "CSI": {
+    "full": "Channel State Information",
+    "category": "反馈机制",
+    "related": ["PMI", "RI", "CQI", "CSI-RS"]
+  },
+  "PMI": {
+    "full": "Precoding Matrix Indicator",
+    "category": "MIMO反馈",
+    "related": ["CSI", "RI", "CQI", "PDSCH"]
+  },
+  "RI": {
+    "full": "Rank Indicator",
+    "category": "MIMO反馈",
+    "related": ["CSI", "PMI", "CQI", "MIMO"]
+  },
+  "CQI": {
+    "full": "Channel Quality Indicator",
+    "category": "MIMO反馈",
+    "related": ["CSI", "PMI", "RI", "MCS"]
+  },
+  "CSI-RS": {
+    "full": "Channel State Information Reference Signal",
+    "category": "参考信号",
+    "related": ["CSI", "Beam Management", "TRS"]
+  },
+  "SRS": {
+    "full": "Sounding Reference Signal",
+    "category": "参考信号",
+    "related": ["CSI", "UL", "Beam Management"]
+  },
+  "TRS": {
+    "full": "Tracking Reference Signal",
+    "category": "参考信号",
+    "related": ["CSI-RS", "PBCH", "RS"]
+  },
+  "DM-RS": {
+    "full": "Demodulation Reference Signal",
+    "category": "参考信号",
+    "related": ["PDSCH", "PUSCH", "PDCCH"]
+  },
+  "HARQ": {
+    "full": "Hybrid Automatic Repeat Request",
+    "category": "重传机制",
+    "related": ["ACK/NACK", "NACK", "FDD", "TDD"]
+  },
+  "ACK/NACK": {
+    "full": "Acknowledgment/Negative Acknowledgment",
+    "category": "反馈机制",
+    "related": ["HARQ", "UCI", "PDSCH"]
+  },
+  "CG": {
+    "full": "Configured Grant",
+    "category": "调度机制",
+    "related": ["PUSCH", "Grant-Free", "Configured Schedling"]
+  },
+  "CBG": {
+    "full": "Codeblock Group",
+    "category": "传输机制",
+    "related": ["TB", "CB", "HARQ", "PDSCH"]
+  },
+  "MCS": {
+    "full": "Modulation and Coding Scheme",
+    "category": "链路自适应",
+    "related": ["CQI", "PDSCH", "PUSCH", "TBS"]
+  },
+  "TBS": {
+    "full": "Transport Block Size",
+    "category": "链路自适应",
+    "related": ["MCS", "PDSCH", "PUSCH", "CQI"]
+  },
+  "QoS": {
+    "full": "Quality of Service",
+    "category": "服务质量",
+    "related": ["5QI", "QFI", "PDU", "SDAP"]
+  },
+  "5QI": {
+    "full": "5G QoS Identifier",
+    "category": "服务质量",
+    "related": ["QoS", "QFI", "SDAP", "PDU"]
+  },
+  "QFI": {
+    "full": "QoS Flow Identifier",
+    "category": "服务质量",
+    "related": ["5QI", "QoS", "SDAP", "UL CL"]
+  },
+  "LCM": {
+    "full": "Life Cycle Management",
+    "category": "网络管理",
+    "related": ["IoT", "Management", "MN"]
+  },
+  "FR1": {
+    "full": "Frequency Range 1 (410 MHz - 7125 MHz)",
+    "category": "频段",
+    "related": ["FR2", "NR", "Sub-6GHz", "SSB"]
+  },
+  "FR2": {
+    "full": "Frequency Range 2 (24250 MHz - 52600 MHz)",
+    "category": "频段",
+    "related": ["FR1", "NR", "mmWave", "Beam Management"]
+  },
+  "Sidelink": {
+    "full": "直通链路 (UE-to-UE Direct Communication)",
+    "category": "近场通信",
+    "related": ["V2X", "PSCCH", "PSSCH", "SL"]
+  },
+  "V2X": {
+    "full": "Vehicle-to-Everything",
+    "category": "V2X",
+    "related": ["Sidelink", "PC5", "Uu"]
+  },
+  "PC5": {
+    "full": "Sidelink Air Interface Reference Point",
+    "category": "V2X",
+    "related": ["V2X", "Sidelink", "Uu"]
+  },
+  "Uu": {
+    "full": "UE-Network Air Interface",
+    "category": "接入接口",
+    "related": ["PC5", "NR", "LTE"]
+  },
+  "NR-U": {
+    "full": "NR in Unlicensed Spectrum",
+    "category": "频段",
+    "related": ["LAA", "NR", "Unlicensed"]
+  },
+  "MIMO": {
+    "full": "Multiple Input Multiple Output",
+    "category": "天线技术",
+    "related": ["Massive MIMO", "Beamforming", "CSI", "SU-MIMO", "MU-MIMO"]
+  },
+  "FDD": {
+    "full": "Frequency Division Duplex",
+    "category": "双工方式",
+    "related": ["TDD", "HARQ", "FDD-TDM"]
+  },
+  "TDD": {
+    "full": "Time Division Duplex",
+    "category": "双工方式",
+    "related": ["FDD", "SSB", "Beam Management"]
+  },
+  "TA": {
+    "full": "Timing Advance",
+    "category": "上行同步",
+    "related": ["UL", "PRACH", "RACH"]
+  },
+  "RACH": {
+    "full": "Random Access Channel",
+    "category": "接入过程",
+    "related": ["PRACH", "TA", "Msg1", "Msg2"]
+  },
+  "PRACH": {
+    "full": "Physical Random Access Channel",
+    "category": "物理信道",
+    "related": ["RACH", "TA", "Preamble"]
+  },
+  "SR": {
+    "full": "Scheduling Request",
+    "category": "调度请求",
+    "related": ["PUCCH", "DCI", "UCI", "PUSCH"]
+  },
+  "CG": {
+    "full": "Cell Group (in Dual Connectivity)",
+    "category": "双连接",
+    "related": ["MCG", "SCG", "DC", "NRDC"]
+  },
+  "MCG": {
+    "full": "Master Cell Group",
+    "category": "双连接",
+    "related": ["SCG", "CG", "DC", "LTE"]
+  },
+  "SCG": {
+    "full": "Secondary Cell Group",
+    "category": "双连接",
+    "related": ["MCG", "CG", "DC", "NR"]
+  },
+  "DC": {
+    "full": "Dual Connectivity",
+    "category": "双连接",
+    "related": ["MCG", "SCG", "NRDC", "LTE"]
+  },
+  "NRDC": {
+    "full": "NR Dual Connectivity",
+    "category": "双连接",
+    "related": ["DC", "EN-DC", "NGEN-DC"]
+  },
+  "EN-DC": {
+    "full": "E-UTRA NR Dual Connectivity",
+    "category": "双连接",
+    "related": ["NRDC", "DC", "LTE", "NR"]
+  },
+  "RLM": {
+    "full": "Radio Link Monitoring",
+    "category": "无线链路管理",
+    "related": ["RLF", "RLF", "Out-of-sync", "In-sync"]
+  },
+  "RLF": {
+    "full": "Radio Link Failure",
+    "category": "无线链路管理",
+    "related": ["RLM", "RLC", "Reestablishment"]
+  },
+  "DRX": {
+    "full": "Discontinuous Reception",
+    "category": "省电机制",
+    "related": ["DTX", "C-DRX", "Connected DRX"]
+  },
+  "C-DRX": {
+    "full": "Connected DRX",
+    "category": "省电机制",
+    "related": ["DRX", "Long DRX", "Short DRX"]
+  },
+  "BWP": {
+    "full": "Bandwidth Part",
+    "category": "资源管理",
+    "related": ["CA", "SCS", "PRB", "RB"]
+  },
+  "CORESET": {
+    "full": "Control Resource Set",
+    "category": "控制信道",
+    "related": ["PDCCH", "Search Space", "DCI"]
+  },
+  "Search Space": {
+    "full": "Search Space Set",
+    "category": "控制信道",
+    "related": ["PDCCH", "CORESET", "DCI"]
+  },
+  "RNTI": {
+    "full": "Radio Network Temporary Identifier",
+    "category": "标识",
+    "related": ["C-RNTI", "RA-RNTI", "TC-RNTI"]
+  },
+  "MAC CE": {
+    "full": "MAC Control Element",
+    "category": "协议层",
+    "related": ["MAC", "LCID", "BSR"]
+  },
+  "BSR": {
+    "full": "Buffer Status Report",
+    "category": "协议层",
+    "related": ["MAC CE", "SR", "LCP"]
+  },
+  "LCP": {
+    "full": "Logical Channel Prioritization",
+    "category": "协议层",
+    "related": ["MAC", "BSR", "LCG"]
+  },
+  "PHR": {
+    "full": "Power Headroom Report",
+    "category": "功率控制",
+    "related": ["MAC CE", "PH", "PUSCH"]
+  },
+  "TA Command": {
+    "full": "Timing Advance Command",
+    "category": "上行同步",
+    "related": ["TA", "MAC CE", "N_TA"]
+  },
+  "RRC Connection": {
+    "full": "RRC Connection Establishment/Reconfiguration",
+    "category": "RRC过程",
+    "related": ["RRC", "SRB", "DRB", "RRCSetup"]
+  },
+  "Handover": {
+    "full": "Handover Procedure",
+    "category": "移动性",
+    "related": ["RRC", "Measurement", "HO", "CHO"]
+  },
+  "Paging": {
+    "full": "Paging Procedure",
+    "category": "RRC过程",
+    "related": ["RRC", "DRX", "PO", "PF"]
+  },
+  "_spec_sections": {
+    "random access": {"spec": "38.321", "section": "5"},
+    "random access procedure": {"spec": "38.321", "section": "5.1"},
+    "RACH": {"spec": "38.321", "section": "5.1"},
+    "contention resolution": {"spec": "38.321", "section": "5.1.4"},
+    "beam failure recovery": {"spec": "38.321", "section": "5.17"},
+    "BFR": {"spec": "38.321", "section": "5.17"},
+    "scheduling": {"spec": "38.214", "section": "5"},
+    "downlink scheduling": {"spec": "38.214", "section": "5.1"},
+    "uplink scheduling": {"spec": "38.214", "section": "6.1"},
+    "PDCCH monitoring": {"spec": "38.213", "section": "10"},
+    "search space": {"spec": "38.213", "section": "10.1"},
+    "CORESET": {"spec": "38.213", "section": "10.1"},
+    "HARQ-ACK": {"spec": "38.213", "section": "9"},
+    "HARQ-ACK codebook": {"spec": "38.213", "section": "9.1"},
+    "CSI reporting": {"spec": "38.214", "section": "5.2"},
+    "CSI": {"spec": "38.214", "section": "5.2"},
+    "power control": {"spec": "38.213", "section": "7"},
+    "PUSCH power control": {"spec": "38.213", "section": "7.1"},
+    "PUCCH power control": {"spec": "38.213", "section": "7.2"},
+    "PRACH": {"spec": "38.211", "section": "5.3"},
+    "PDSCH": {"spec": "38.211", "section": "5.1"},
+    "PUSCH": {"spec": "38.211", "section": "6.1"},
+    "PDCCH": {"spec": "38.211", "section": "5.2"},
+    "carrier aggregation": {"spec": "38.300", "section": "7.5"},
+    "CA": {"spec": "38.300", "section": "7.5"},
+    "dual connectivity": {"spec": "38.300", "section": "7.6"},
+    "DC": {"spec": "38.300", "section": "7.6"},
+    "SUL": {"spec": "38.300", "section": "7.4"},
+    "supplementary uplink": {"spec": "38.300", "section": "7.4"},
+    "BWP operation": {"spec": "38.321", "section": "5.15"},
+    "BWP": {"spec": "38.321", "section": "5.15"},
+    "DRX": {"spec": "38.321", "section": "5.7"},
+    "SR": {"spec": "38.321", "section": "5.4"},
+    "scheduling request": {"spec": "38.321", "section": "5.4"},
+    "BSR": {"spec": "38.321", "section": "5.4"},
+    "buffer status report": {"spec": "38.321", "section": "5.4"},
+    "PHR": {"spec": "38.321", "section": "5.4"},
+    "MAC reset": {"spec": "38.321", "section": "5.8"},
+    "RRC connection establishment": {"spec": "38.331", "section": "5"},
+    "RRC reconfiguration": {"spec": "38.331", "section": "5.3"},
+    "RRC connection reconfiguration": {"spec": "38.331", "section": "5.3"},
+    "handover": {"spec": "38.331", "section": "5.4"},
+    "measurement reporting": {"spec": "38.331", "section": "5.5"},
+    "paging": {"spec": "38.331", "section": "5.2"},
+    "SIB1": {"spec": "38.331", "section": "6.2.2"},
+    "RLC AM": {"spec": "38.322", "section": "5"},
+    "RLC UM": {"spec": "38.322", "section": "5.2"},
+    "RLC TM": {"spec": "38.322", "section": "5.3"},
+    "ARQ": {"spec": "38.322", "section": "5.1"},
+    "modulation": {"spec": "38.211", "section": "5.1"},
+    "OFDM": {"spec": "38.211", "section": "5.3"},
+    "SCS": {"spec": "38.211", "section": "4.2"},
+    "reference signal": {"spec": "38.211", "section": "5.4"},
+    "DM-RS": {"spec": "38.211", "section": "5.4.2"},
+    "CSI-RS": {"spec": "38.211", "section": "5.4.3"},
+    "SRS": {"spec": "38.211", "section": "6.4.1"},
+    "channel coding": {"spec": "38.212", "section": "5"},
+    "LDPC": {"spec": "38.212", "section": "5.3.2"},
+    "polar code": {"spec": "38.212", "section": "5.3.1"},
+    "CRC": {"spec": "38.212", "section": "5.1"},
+    "rate matching": {"spec": "38.212", "section": "5.4"},
+    "SIB": {"spec": "38.331", "section": "6.2"},
+    "RRC message": {"spec": "38.331", "section": "6"},
+    "logical channel": {"spec": "38.321", "section": "5.22"},
+    "multiplexing": {"spec": "38.321", "section": "5.4.3"},
+    "radio link monitoring": {"spec": "38.321", "section": "5.5"},
+    "RLM": {"spec": "38.321", "section": "5.5"},
+    "RLF": {"spec": "38.321", "section": "5.6"}
+  }
+}

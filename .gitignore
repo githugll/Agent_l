@@ -1,0 +1,14 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.files/
+data/memory/
+data/tdocs/chroma_db/
+data/tdocs/raw/
+data/tdocs/processed/texts/
+data/tdocs/processed/chunks/
+data/specs/chroma_db/
+data/specs/raw/
+data/specs/processed/
+.chainlit/
