@@ -21,8 +21,10 @@ try:
     _ROOT = os.path.dirname(os.path.abspath(__file__))
 except NameError:
     _ROOT = os.getcwd()
-if _ROOT not in sys.path:
-    sys.path.insert(0, _ROOT)
+# Always insert (unguarded) so _ROOT survives framework cleanup.
+# Chainlit adds target_dir to sys.path[0] then pops it after loading.
+# A guarded check skips insertion, and the pop removes the only copy.
+sys.path.insert(0, _ROOT)
 
 # Load .env before other imports
 from dotenv import load_dotenv
@@ -31,17 +33,18 @@ load_dotenv(os.path.join(_ROOT, ".env"))
 # Fix protobuf compatibility for chromadb
 os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 
+# Use cached HF models offline to avoid SSL errors
+os.environ["HF_HUB_OFFLINE"] = "1"
+
 import chainlit as cl
-from chainlit.input_widget import Select
 
 from agent.router import SkillRouter, Skill
 from memory import MemoryManager
-from utils.llm_utils import llm_available
+from utils.llm_utils import llm_available, get_all_available_models, is_chinese, translate_query
 
 # ── Skill-specific constants ───────────────────────────────────────────────────
 
 WORKING_GROUPS = ["", "R1", "R2", "R3", "R4", "SA1", "SA2", "SA3", "SA5", "CT1", "CT3", "CT4"]
-TOP_K_OPTIONS = ["5", "10", "20", "30"]
 
 # Load TDoc company list
 def _load_companies():
@@ -65,6 +68,11 @@ SPEC_OPTIONS = [""] + [
     "38.211", "38.212", "38.213", "38.214",
     "38.300", "38.321", "38.322", "38.331",
 ]
+
+# Model selector options (computed at startup)
+AVAILABLE_MODELS = get_all_available_models()
+DEFAULT_MODEL = "claude-sonnet-4-6" if "claude-sonnet-4-6" in AVAILABLE_MODELS else (AVAILABLE_MODELS[0] if AVAILABLE_MODELS else "")
+MODEL_OPTIONS = AVAILABLE_MODELS if AVAILABLE_MODELS else ["无可用模型"]
 
 # ── LLM prompts ──────────────────────────────────────────────────────────────
 
@@ -97,7 +105,7 @@ SPEC_ANALYSIS_PROMPT = """你是一名资深 3GPP 协议专家。请基于以下
 # ── LLM streaming ────────────────────────────────────────────────────────────
 
 async def _stream_analysis(context: str, query: str, skill: Skill):
-    from llm.config import create_llm_provider
+    from llm.config import create_llm_provider, LLMConfig
 
     prompt_template = TDOC_ANALYSIS_PROMPT if skill == Skill.TDOC else SPEC_ANALYSIS_PROMPT
     prompt = prompt_template.format(context=context[:12000])
@@ -110,7 +118,9 @@ async def _stream_analysis(context: str, query: str, skill: Skill):
         if memory_ctx:
             system_parts.append(memory_ctx)
 
-    provider = create_llm_provider()
+    # Use session-stored LLM config, fall back to env default
+    llm_config = cl.user_session.get("llm_config")
+    provider = create_llm_provider(llm_config)
 
     msg = cl.Message(content="")
     await msg.send()
@@ -304,37 +314,25 @@ async def on_select_tdoc(action: cl.Action):
     skill = Skill.TDOC
     cl.user_session.set("skill", skill)
 
-    mem: MemoryManager = cl.user_session.get("memory")
-    prefs = mem.preferences if mem else None
-
-    await cl.ChatSettings([
-        Select(id="working_group", label="工作组", values=WORKING_GROUPS,
-               initial_value=prefs.working_groups[0] if prefs and prefs.working_groups else ""),
-        Select(id="company", label="提交公司", values=COMPANY_OPTIONS,
-               initial_value=prefs.companies[0] if prefs and prefs.companies else ""),
-        Select(id="top_k", label="结果数量", values=TOP_K_OPTIONS,
-               initial_value=str(prefs.top_k) if prefs else "20"),
-    ]).send()
-
-    examples = """## TDoc 会议文档检索（当前 Skill: **TDoc**）
+    content = """## TDoc 会议文档检索（当前 Skill: **TDoc**）
 
 当前数据库：**TSGR2_134** 会议 947 个 Tdoc 文档
 
 **使用方式：**
+- 使用左侧边栏设置工作组 / 公司 / 模型 / 结果数
 - 输入技术关键词进行检索
-- 点击右上角 ⚙️ 设置工作组、公司过滤条件
 - 检索后可点击 **深度分析** 获取 AI 结构化报告
+
+**快捷命令：**
+- `top:50 <关键词>` — 直接指定结果数量
 
 **示例查询：**
 - `beam management FR2`
 - `NTN satellite NR`
 - `QoS 6G framework`
 - `Sidelink V2X mode`
-
----
-*如需切换，请点击底部的 [切换 Skill] 按钮*
 """
-    await cl.Message(content=examples).send()
+    await cl.Message(content=content).send()
 
 
 @cl.action_callback("select_spec")
@@ -343,34 +341,25 @@ async def on_select_spec(action: cl.Action):
     skill = Skill.SPEC
     cl.user_session.set("skill", skill)
 
-    mem: MemoryManager = cl.user_session.get("memory")
-    prefs = mem.preferences if mem else None
-
-    await cl.ChatSettings([
-        Select(id="spec_filter", label="规范筛选", values=SPEC_OPTIONS, initial_value=""),
-        Select(id="top_k", label="结果数量", values=TOP_K_OPTIONS,
-               initial_value=str(prefs.top_k) if prefs else "20"),
-    ]).send()
-
-    examples = """## 3GPP 规范查询（当前 Skill: **Spec**）
+    content = """## 3GPP 规范查询（当前 Skill: **Spec**）
 
 当前数据库：Rel-19 **8 个** NR 规范（38.211-214, 38.300, 38.321-323, 38.331）
 
 **使用方式：**
+- 使用左侧边栏设置规范 / 模型 / 结果数
 - 输入技术名词查询协议原文（如 `random access procedure`）
 - 可直接引用章节号（如 `38.321 5.1`、`TS 38.321 Section 9`）
-- 检索后可点击 **深度分析** 获取协议内容整理
+
+**快捷命令：**
+- `top:50 <关键词>` — 直接指定结果数量
 
 **示例查询：**
 - `random access procedure` → 定位到 TS 38.321 §5.1
 - `PDCCH monitoring` → 控制信道监听相关章节
 - `38.321 5.1` → 直接精确定位 MAC 层随机接入
 - `carrier aggregation` → 跨规范检索载波聚合
-
----
-*如需切换，请点击底部的 [切换 Skill] 按钮*
 """
-    await cl.Message(content=examples).send()
+    await cl.Message(content=content).send()
 
 
 @cl.action_callback("switch_skill")
@@ -388,133 +377,202 @@ async def on_switch_skill(action: cl.Action):
     await cl.Message(content=welcome, actions=actions).send()
 
 
-@cl.on_settings_update
-async def on_settings_update(settings):
-    cl.user_session.set("settings", settings)
-    try:
-        mem: MemoryManager = cl.user_session.get("memory")
-        if mem:
-            skill = cl.user_session.get("skill")
-            mem.save_preferences_from_settings(settings, skill.value if skill else "tdoc")
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).warning(f"Failed to save preferences: {e}")
-
-
 @cl.on_message
 async def on_message(message: cl.Message):
     """Route message to the appropriate retriever based on active skill."""
-    skill = cl.user_session.get("skill")
+    import logging
+    import time
 
-    # ── Skill not selected: show selection prompt ──────────────────────────
-    if skill is None:
-        actions = [
-            cl.Action(name="select_tdoc", payload={"skill": "tdoc"}, label="TDoc 会议文档检索"),
-            cl.Action(name="select_spec", payload={"skill": "spec"}, label="3GPP 规范查询"),
-        ]
-        await cl.Message(
-            content="**请先选择 Skill，再输入查询！**\n点击上方按钮选择检索模式。",
-            actions=actions,
-        ).send()
-        return
+    logger = logging.getLogger(__name__)
 
-    query = message.content.strip()
-    if not query:
-        return
+    try:
+        skill = cl.user_session.get("skill")
 
-    # ── Handle analysis command ────────────────────────────────────────────
-    if query.lower() in ["分析", "analyze", "深度分析"]:
-        await _handle_analysis()
-        return
+        # ── Skill not selected: show selection prompt ──────────────────────────
+        if skill is None:
+            actions = [
+                cl.Action(name="select_tdoc", payload={"skill": "tdoc"}, label="TDoc 会议文档检索"),
+                cl.Action(name="select_spec", payload={"skill": "spec"}, label="3GPP 规范查询"),
+            ]
+            await cl.Message(
+                content="**请先选择 Skill，再输入查询！**\n点击上方按钮选择检索模式。",
+                actions=actions,
+            ).send()
+            return
 
-    # ── Get settings ────────────────────────────────────────────────────────
-    settings = cl.user_session.get("settings", {})
-    top_k = int(settings.get("top_k", "20"))
+        query = message.content.strip()
+        if not query:
+            return
 
-    # ── Get or init router ────────────────────────────────────────────────
-    router: SkillRouter = cl.user_session.get("router")
-    if router is None:
-        router = SkillRouter()
-        cl.user_session.set("router", router)
+        # ── Handle analysis command ────────────────────────────────────────────
+        if query.lower() in ["分析", "analyze", "深度分析"]:
+            await _handle_analysis()
+            return
 
-    # ── Route retrieval ───────────────────────────────────────────────────
-    async with cl.Step(name="检索", type="run") as step:
-        step.output = f"[{skill.value.upper()}] 查询: `{query}`"
+        # ── Parse top_k: support "top:N" prefix in query, fall back to session setting ──
+        settings = cl.user_session.get("settings", {})
+        top_k = cl.user_session.get("top_k", 20)
+        prefix = None
+        # Strip "top:N " prefix if present
+        m = None
+        for pat in [r"^top\s*[:：]\s*(\d+)\s+", r"^召回\s*[:：]\s*(\d+)\s+"]:
+            import re
+            m = re.match(pat, query, re.IGNORECASE)
+            if m:
+                break
+        if m:
+            prefix = m.group(1)
+            query = query[m.end():].strip()
+            effective_query = query  # override since query changed
+            top_k = max(1, min(100, int(prefix)))
+            cl.user_session.set("top_k", top_k)
+            await cl.Message(content=f"> 📊 本次结果数量设为 **{top_k}** 条").send()
 
+        # ── Chinese query translation ────────────────────────────────────────
+        effective_query = query
+        if is_chinese(query) and llm_available():
+            try:
+                from llm.config import create_llm_provider
+                llm_config = cl.user_session.get("llm_config")
+                provider = create_llm_provider(llm_config)
+                translated = await translate_query(query, provider)
+                if translated:
+                    effective_query = translated
+                    await cl.Message(
+                        content=f"> 查询翻译：{query} → **{translated}**"
+                    ).send()
+            except Exception:
+                pass
+
+        logger.info(f"on_message: skill={skill.value}, query={query!r}, effective_query={effective_query!r}, top_k={top_k}")
+
+        # ── Get or init router ────────────────────────────────────────────────
+        router: SkillRouter = cl.user_session.get("router")
+        if router is None:
+            router = SkillRouter()
+            cl.user_session.set("router", router)
+
+        # ── Route retrieval ────────────────────────────────────────────────────
+        t_start = time.perf_counter()
+
+        async with cl.Step(name="检索", type="run") as step:
+            step.output = f"[{skill.value.upper()}] 正在检索..."
+
+            if skill == Skill.TDOC:
+                working_group = settings.get("working_group", "") or None
+                company = settings.get("company", "") or None
+                companies_filter = [company] if company else None
+
+                results = router.retrieve(
+                    skill=Skill.TDOC,
+                    query=effective_query,
+                    top_k=top_k,
+                    working_group=working_group,
+                    companies=companies_filter,
+                    use_reranker=False,
+                    use_glossary=True,
+                )
+            else:
+                spec_filter = settings.get("spec_filter", "") or None
+                results = router.retrieve(
+                    skill=Skill.SPEC,
+                    query=effective_query,
+                    top_k=top_k,
+                    spec_filter=spec_filter,
+                    use_reranker=True,
+                    use_glossary=True,
+                )
+
+            # Extract stage log
+            stage_log = None
+            if results and isinstance(results[-1], dict) and "_stage_log" in results[-1]:
+                stage_log = results.pop().get("_stage_log", [])
+
+            if stage_log:
+                step.output = "\n".join(f"  • {e}" for e in stage_log)
+            else:
+                step.output = f"返回 {len(results)} 条结果"
+
+        t_retrieval = time.perf_counter() - t_start
+        cl.user_session.set("t_retrieval", t_retrieval)
+
+        # ── Cache for analysis ─────────────────────────────────────────────────
+        cl.user_session.set("results_cache", results)
+        cl.user_session.set("last_query", effective_query)
+
+        # ── Record in memory ──────────────────────────────────────────────────
+        mem: MemoryManager = cl.user_session.get("memory")
+        if mem:
+            mem.record_query(
+                query=query, skill=skill.value, results=results,
+                top_k=top_k,
+                filters={
+                    "working_group": settings.get("working_group", ""),
+                    "company": settings.get("company", ""),
+                    "spec_filter": settings.get("spec_filter", ""),
+                },
+            )
+
+        # ── SPEC skill: show LLM analysis directly ──────────────────────────────
+        if skill == Skill.SPEC and results and llm_available():
+            # Skip showing table; go straight to analysis
+            context = _build_context(results, skill)
+            async with cl.Step(name="AI 分析", type="llm") as step:
+                step.output = f"基于 {len(results)} 条结果进行规范分析..."
+
+            await cl.Message(content="### 规范分析结果\n").send()
+
+            t_analysis_start = time.perf_counter()
+            try:
+                await _stream_analysis(context, effective_query, skill)
+            except Exception as e:
+                await cl.Message(content=f"LLM 分析出错: {e}").send()
+                return
+
+            t_analysis = time.perf_counter() - t_analysis_start
+            t_total = t_retrieval + t_analysis
+
+            # Action buttons after spec analysis
+            actions = [
+                cl.Action(name="trace_source", payload={}, label="标准原文溯源"),
+                cl.Action(name="switch_skill", payload={}, label="切换 Skill"),
+            ]
+            await cl.Message(
+                content=f"\n⏱ 检索: {t_retrieval:.1f}s | 分析: {t_analysis:.1f}s | 总计: {t_total:.1f}s",
+                actions=actions,
+            ).send()
+            return
+
+        # ── TDOC or no-LLM: show retrieval results ─────────────────────────────
         if skill == Skill.TDOC:
-            working_group = settings.get("working_group", "") or None
-            company = settings.get("company", "") or None
-            companies_filter = [company] if company else None
-
-            results = router.retrieve(
-                skill=Skill.TDOC,
-                query=query,
-                top_k=top_k,
-                working_group=working_group,
-                companies=companies_filter,
-                use_reranker=False,
-                use_glossary=True,
-            )
+            table_md = _format_tdoc_table(results, query)
+            details_md = _format_tdoc_details(results)
         else:
-            spec_filter = settings.get("spec_filter", "") or None
-            results = router.retrieve(
-                skill=Skill.SPEC,
-                query=query,
-                top_k=top_k,
-                spec_filter=spec_filter,
-                use_reranker=True,
-                use_glossary=True,
-            )
+            table_md = _format_spec_table(results, query)
+            details_md = _format_spec_details(results)
 
-        # Extract stage log
-        stage_log = None
-        if results and isinstance(results[-1], dict) and "_stage_log" in results[-1]:
-            stage_log = results.pop().get("_stage_log", [])
+        timing_md = f"\n---\n⏱ 检索: {t_retrieval:.1f}s"
 
-        if stage_log:
-            step.output = "\n".join(f"  • {e}" for e in stage_log)
-        else:
-            step.output = f"返回 {len(results)} 条结果"
+        actions = []
+        if results and llm_available():
+            actions.append(cl.Action(name="analyze", payload={"skill": skill.value}, label="深度分析"))
+        actions.extend([
+            cl.Action(name="bookmark", payload={}, label="收藏结果"),
+            cl.Action(name="switch_skill", payload={}, label="切换 Skill"),
+        ])
 
-    # ── Cache for analysis ─────────────────────────────────────────────────
-    cl.user_session.set("results_cache", results)
-    cl.user_session.set("last_query", query)
+        await cl.Message(content=table_md + details_md + timing_md, actions=actions).send()
 
-    # ── Record in memory ──────────────────────────────────────────────────
-    mem: MemoryManager = cl.user_session.get("memory")
-    if mem:
-        mem.record_query(
-            query=query, skill=skill.value, results=results,
-            top_k=top_k,
-            filters={
-                "working_group": settings.get("working_group", ""),
-                "company": settings.get("company", ""),
-                "spec_filter": settings.get("spec_filter", ""),
-            },
-        )
+        if not llm_available():
+            await cl.Message(
+                content="> 提示：Ollama 未运行且未配置 Claude API Key，深度分析功能不可用。"
+            ).send()
 
-    # ── Format results ────────────────────────────────────────────────────
-    if skill == Skill.TDOC:
-        table_md = _format_tdoc_table(results, query)
-        details_md = _format_tdoc_details(results)
-    else:
-        table_md = _format_spec_table(results, query)
-        details_md = _format_spec_details(results)
-
-    # ── Action buttons ───────────────────────────────────────────────────
-    actions = []
-    if results and llm_available():
-        actions.append(cl.Action(name="analyze", payload={"skill": skill.value}, label="深度分析"))
-    actions.append(cl.Action(name="bookmark", payload={}, label="收藏结果"))
-    actions.append(cl.Action(name="switch_skill", payload={}, label="切换 Skill"))
-
-    await cl.Message(content=table_md + details_md, actions=actions).send()
-
-    # ── LLM hint ─────────────────────────────────────────────────────────
-    if not llm_available():
-        await cl.Message(
-            content="> 提示：Ollama 未运行且未配置 Claude API Key，深度分析功能不可用。"
-        ).send()
+    except Exception as e:
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"on_message error: {e}\n{tb}")
+        await cl.Message(content=f"❌ 处理出错:\n```\n{tb}\n```").send()
 
 
 @cl.action_callback("analyze")
@@ -550,7 +608,155 @@ async def on_bookmark(action: cl.Action):
         await cl.Message(content="这些结果已经在收藏夹中了。").send()
 
 
+# ── All settings via Action buttons (no ChatSettings) ──────────────────────
+
+@cl.action_callback("pick_wg")
+async def on_pick_wg(action: cl.Action):
+    """Show working group options as buttons."""
+    settings = cl.user_session.get("settings", {})
+    current = settings.get("working_group", "")
+    actions = []
+    for wg in WORKING_GROUPS:
+        label = wg if wg else "不限"
+        if wg == current:
+            label += " ✅"
+        actions.append(cl.Action(name="pick_wg_val", payload={"wg": wg}, label=label))
+    await cl.Message(
+        content=f"当前工作组：**{current or '不限'}**\n请选择：",
+        actions=actions,
+    ).send()
+
+
+@cl.action_callback("pick_wg_val")
+async def on_pick_wg_val(action: cl.Action):
+    wg = action.payload.get("wg", "")
+    settings = cl.user_session.get("settings", {})
+    settings["working_group"] = wg
+    cl.user_session.set("settings", settings)
+    await cl.Message(content=f"✅ 工作组已设为：**{wg or '不限'}**").send()
+
+
+@cl.action_callback("pick_company")
+async def on_pick_company(action: cl.Action):
+    """Show company options as buttons."""
+    settings = cl.user_session.get("settings", {})
+    current = settings.get("company", "")
+    actions = []
+    for co in [""] + COMPANY_LIST[:20]:
+        label = co if co else "不限"
+        if co == current:
+            label += " ✅"
+        actions.append(cl.Action(name="pick_co_val", payload={"co": co}, label=label))
+    await cl.Message(
+        content=f"当前公司：**{current or '不限'}**\n请选择：",
+        actions=actions,
+    ).send()
+
+
+@cl.action_callback("pick_co_val")
+async def on_pick_co_val(action: cl.Action):
+    co = action.payload.get("co", "")
+    settings = cl.user_session.get("settings", {})
+    settings["company"] = co
+    cl.user_session.set("settings", settings)
+    await cl.Message(content=f"✅ 公司已设为：**{co or '不限'}**").send()
+
+
+@cl.action_callback("pick_spec")
+async def on_pick_spec(action: cl.Action):
+    """Show spec options as buttons."""
+    settings = cl.user_session.get("settings", {})
+    current = settings.get("spec_filter", "")
+    actions = []
+    for sp in SPEC_OPTIONS:
+        label = sp if sp else "不限"
+        if sp == current:
+            label += " ✅"
+        actions.append(cl.Action(name="pick_sp_val", payload={"sp": sp}, label=label))
+    await cl.Message(
+        content=f"当前规范：**{current or '不限'}**\n请选择：",
+        actions=actions,
+    ).send()
+
+
+@cl.action_callback("pick_sp_val")
+async def on_pick_sp_val(action: cl.Action):
+    sp = action.payload.get("sp", "")
+    settings = cl.user_session.get("settings", {})
+    settings["spec_filter"] = sp
+    cl.user_session.set("settings", settings)
+    await cl.Message(content=f"✅ 规范已设为：**{sp or '不限'}**").send()
+
+
+@cl.action_callback("set_model")
+async def on_set_model(action: cl.Action):
+    """Show model options as buttons."""
+    current = cl.user_session.get("llm_config")
+    current_label = current.model if current else DEFAULT_MODEL
+    actions = []
+    for model_id in MODEL_OPTIONS:
+        label = model_id.replace("ollama:", "Ollama ")
+        if model_id == current_label:
+            label += " ✅"
+        actions.append(cl.Action(name="pick_mdl_val", payload={"mdl": model_id}, label=label))
+    await cl.Message(
+        content=f"当前模型：**{current_label}**\n请选择：",
+        actions=actions,
+    ).send()
+
+
+@cl.action_callback("pick_mdl_val")
+async def on_pick_mdl_val(action: cl.Action):
+    model_id = action.payload.get("mdl", "")
+    from llm.config import LLMConfig
+    if model_id.startswith("ollama:"):
+        cl.user_session.set("llm_config", LLMConfig(provider="ollama", model=model_id[7:]))
+    elif model_id:
+        cl.user_session.set("llm_config", LLMConfig(provider="claude", model=model_id))
+    await cl.Message(content=f"✅ 模型已切换至：**{model_id}**").send()
+
+
+@cl.action_callback("set_top_k")
+async def on_set_top_k(action: cl.Action):
+    """Show top_k options as buttons."""
+    current = cl.user_session.get("top_k", 20)
+    values = ["5", "10", "20", "30", "50", "100"]
+    actions = []
+    for v in values:
+        label = f"{v} 条"
+        if int(v) == current:
+            label += " ✅"
+        actions.append(cl.Action(name="pick_tk_val", payload={"tk": v}, label=label))
+    await cl.Message(
+        content=f"当前结果数量：**{current}** 条\n请选择：",
+        actions=actions,
+    ).send()
+
+
+@cl.action_callback("pick_tk_val")
+async def on_pick_tk_val(action: cl.Action):
+    v = action.payload.get("tk", "20")
+    top_k = max(1, min(100, int(v)))
+    cl.user_session.set("top_k", top_k)
+    await cl.Message(content=f"✅ 结果数量已设为：**{top_k}** 条").send()
+
+
+@cl.action_callback("trace_source")
+async def on_trace_source(action: cl.Action):
+    """Show original spec retrieval results."""
+    results = cl.user_session.get("results_cache", [])
+    query = cl.user_session.get("last_query", "")
+    if not results:
+        await cl.Message(content="没有可溯源的标准原文。").send()
+        return
+    table_md = _format_spec_table(results, query)
+    details_md = _format_spec_details(results)
+    await cl.Message(content=table_md + details_md).send()
+
+
 async def _handle_analysis():
+    import time
+
     results = cl.user_session.get("results_cache", [])
     query = cl.user_session.get("last_query", "")
     skill = cl.user_session.get("skill", Skill.TDOC)
@@ -564,13 +770,25 @@ async def _handle_analysis():
         return
 
     context = _build_context(results, skill)
+    t_retrieval = cl.user_session.get("t_retrieval", 0)
 
     async with cl.Step(name="AI 分析", type="llm") as step:
         step.output = f"基于 {len(results)} 条结果进行 {'TDoc' if skill == Skill.TDOC else 'Spec'} 分析..."
 
     await cl.Message(content=f"### AI 深度分析\n").send()
 
+    t_analysis_start = time.perf_counter()
     try:
         await _stream_analysis(context, query, skill)
     except Exception as e:
         await cl.Message(content=f"LLM 分析出错: {e}").send()
+        return
+
+    t_analysis = time.perf_counter() - t_analysis_start
+    t_total = t_retrieval + t_analysis
+    await cl.Message(
+        content=f"⏱ 检索: {t_retrieval:.1f}s | 分析: {t_analysis:.1f}s | 总计: {t_total:.1f}s"
+    ).send()
+
+
+
