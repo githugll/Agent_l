@@ -1,4 +1,4 @@
-# 3GPP Agent - 双 Skill 智能检索分析系统
+# 3GPP Agent — 双 Skill 智能检索分析系统
 
 基于 RAG 技术的 3GPP 垂直领域检索分析助手，支持两个独立 Skill：
 
@@ -32,12 +32,11 @@
      HybridRetriever    ┌──────────┐   SpecRetriever
      (TDoc 检索)       │ LLM 配置  │   (Spec 检索)
      dense + BM25      │ (Ollama/ │   dense + BM25
-     + reranker        │  Claude)  │   + reranker
-              │        └──────────┘   + 章节引用检测
-              ▼                       ▼
-     ChromaDB                    ChromaDB
-     (3gpp_tdocs)              (3gpp_specs)
-     ~22K chunks               ~5K chunks
+     + reranker        │  Claude)  │   + 章节引用检测
+              │        └──────────┘              │
+              ▼                                  ▼
+           ChromaDB                           ChromaDB
+           (tdocs)                            (specs)
 ```
 
 ---
@@ -48,40 +47,66 @@
 3gpp-agent/
 ├── app.py                         # Chainlit 前端：Skill 路由 + UI 交互
 ├── requirements.txt               # Python 依赖
-├── .env                          # 环境变量（API Key 等）
+├── .env                           # 环境变量（API Key 等）
 ├── .chainlit/
-│   └── config.toml               # Chainlit UI 配置
-├── agent/
+│   └── config.toml                # Chainlit UI 配置
+│
+├── agent/                         # Agent 层
 │   └── router.py                 # SkillRouter：根据 skill 分发到对应 Retriever
-├── llm/
+│
+├── llm/                          # LLM 提供者
 │   ├── base.py                   # LLMProvider 抽象接口
-│   ├── config.py                # LLMConfig + create_llm_provider() 工厂
-│   ├── claude_provider.py       # Claude / Anthropic API 提供者
-│   └── ollama_provider.py       # Ollama 本地模型提供者
-├── memory/
-│   ├── models.py                # 数据模型（ConversationTurn / Bookmark 等）
-│   ├── db.py                   # SQLite 数据库管理
-│   ├── short_term.py           # 短期会话记忆
-│   ├── long_term.py            # 长期用户记忆（偏好/收藏夹）
-│   └── context_builder.py       # System prompt 上下文构建
-├── retriever/
+│   ├── config.py                 # LLMConfig + create_llm_provider() 工厂
+│   ├── claude_provider.py        # Claude / Anthropic API 提供者
+│   └── ollama_provider.py        # Ollama 本地模型提供者
+│
+├── memory/                        # 记忆模块（会话 + 长期）
+│   ├── models.py                 # ConversationTurn / Bookmark 等数据模型
+│   ├── db.py                     # SQLite 数据库管理
+│   ├── short_term.py             # 短期会话记忆
+│   ├── long_term.py              # 长期用户记忆（偏好/收藏夹）
+│   └── context_builder.py        # System prompt 上下文构建
+│
+├── retriever/                     # 检索层
 │   ├── tdocs/
-│   │   └── hybrid_retriever.py # TDoc 混合检索：dense + BM25 + rerank
+│   │   └── hybrid_retriever.py   # TDoc 混合检索：dense + BM25 + rerank
 │   └── specs/
-│       └── spec_retriever.py    # Spec 混合检索：+ 章节引用检测
+│       └── spec_retriever.py     # Spec 混合检索：+ 章节引用检测
+│
+├── crawler/                       # 数据采集
+│   ├── tdocs/
+│   │   ├── config.py             # TDoc 爬虫配置
+│   │   ├── tdoc_crawler.py      # TDoc 主爬虫
+│   │   └── async_crawler.py      # 异步并发爬取
+│   └── specs/
+│       ├── config.py             # Spec 下载配置
+│       └── spec_crawler.py       # 规范 PDF 下载
+│
+├── processor/                     # 数据处理
+│   ├── tdocs/
+│   │   ├── parser.py             # TDoc 文本解析
+│   │   ├── chunker.py            # TDoc 分块策略
+│   │   ├── indexer.py            # ChromaDB 索引写入
+│   │   └── metadata.py           # 元数据提取
+│   └── specs/
+│       ├── spec_parser.py        # PDF 解析
+│       ├── spec_chunker.py       # Spec 分块（按章节）
+│       └── spec_indexer.py       # ChromaDB 索引写入
+│
 ├── utils/
-│   └── llm_utils.py            # LLM 工具：可用性检测 / 中文翻译 / 模型列表
+│   └── llm_utils.py              # LLM 工具：可用性检测 / 中文翻译 / 模型列表
+│
 └── data/
-    ├── 3gpp_glossary.json      # 术语词典（含中文/英文映射 + spec 章节映射）
-    ├── tdocs/                   # TDoc 数据
-    │   ├── raw/                 # 原始 .docx 文件
+    ├── 3gpp_glossary.json         # 术语词典（含中文/英文映射 + Spec 章节映射）
+    ├── tdocs/
+    │   ├── raw/                  # 原始 .docx 文件
     │   ├── processed/            # 处理后文本/chunks
-    │   └── chroma_db/           # ChromaDB（collection: 3gpp_tdocs）
-    ├── specs/                    # Spec 数据
-    │   ├── raw/                 # 下载的 PDF
-    │   ├── processed/           # 解析后文本/chunks
-    │   └── chroma_db/           # ChromaDB（collection: 3gpp_specs）
-    └── memory/                  # Memory 数据库
+    │   └── chroma_db/            # ChromaDB（collection: 3gpp_tdocs）
+    ├── specs/
+    │   ├── raw/                  # 下载的 PDF
+    │   ├── processed/            # 解析后文本/chunks
+    │   └── chroma_db/            # ChromaDB（collection: 3gpp_specs）
+    └── memory/                   # SQLite 记忆数据库
 ```
 
 ---
